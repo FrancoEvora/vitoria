@@ -1,152 +1,101 @@
 # Évora LeadFlow
 
-MVP funcional do **Évora LeadFlow**, um CRM ativo via WhatsApp com a agente **Vitória**.
+**Évora LeadFlow** é uma plataforma de CRM ativo para loteadoras, com a agente comercial **Vitória**. Esta versão entrega uma **demo premium funcional** inspirada nos mockups visuais: dashboard, leads, Vitória, materiais e relatórios.
 
-A plataforma entrega:
+> Status atual: versão demo para GitHub/Vercel, com Vitória e interações de WhatsApp simuladas. A integração real com Meta será feita em etapa posterior.
 
-- Conversa com corretores por WhatsApp/webhook.
-- Cadastro guiado de leads.
-- Classificação quente/morno/frio.
-- Próxima melhor ação sugerida pela Vitória.
-- Scripts comerciais por perfil e objeção.
-- Follow-up diário para corretores.
-- Dashboard web para gestão comercial.
-- APIs administrativas para leads, corretores, empreendimentos e materiais.
-- Configuração pronta para GitHub e deploy na Vercel.
+## Telas principais
 
-## Arquitetura do MVP
+- `/` — Dashboard executivo
+- `/leads` — CRM e funil de leads
+- `/vitoria` — Simulador da Vitória no estilo WhatsApp
+- `/materiais` — Biblioteca de materiais e playbooks
+- `/relatorios` — Gestão comercial e insights
+- `/corretores` — Performance por corretor
+- `/empreendimentos` — Produtos/loteamentos
+- `/configuracoes` — Status da demo
 
-```text
-WhatsApp do corretor
-        ↓
-Meta WhatsApp Cloud API / Webhook
-        ↓
-FastAPI Backend
-        ↓
-PostgreSQL
-        ↓
-Agente Vitória + regras comerciais + OpenAI opcional
-        ↓
-Dashboard web server-rendered
-```
-
-Esta versão usa **FastAPI + Jinja2** para entregar API, webhook e dashboard em uma única aplicação. Isso simplifica o MVP e já permite deploy na Vercel usando runtime Python/FastAPI.
-
-Para uma versão SaaS mais robusta, o próximo passo recomendado é separar frontend, backend, worker e banco gerenciado.
-
-## Pastas principais
-
-```text
-evora-leadflow/
-├── app/                  # FastAPI, banco, agente Vitória, webhook e dashboard
-├── docs/                 # Instruções de configuração e operação
-├── scripts/              # Simulações e comandos úteis
-├── tests/                # Testes automatizados
-├── docker-compose.yml    # Subida local completa
-├── vercel.json           # Configuração para Vercel
-├── pyproject.toml        # Entrypoint FastAPI para Vercel
-├── .env.example          # Variáveis de ambiente
-└── Makefile              # Atalhos de setup
-```
-
-## Subida rápida local
-
-1. Copie o arquivo de ambiente:
+## Rodar localmente
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 cp .env.example .env
+uvicorn app.main:app --reload
 ```
 
-2. Suba a plataforma:
+Acesse:
 
-```bash
-docker compose up --build
+```text
+http://localhost:8000
 ```
 
-3. Acesse:
+Credenciais padrão:
 
-- Dashboard: http://localhost:8000
-- Backend/API: http://localhost:8000
-- Swagger: http://localhost:8000/docs
-- Healthcheck público: http://localhost:8000/health
-
-4. Teste a Vitória sem WhatsApp real:
-
-```bash
-python scripts/simulate_message.py
+```text
+Usuário: evora
+Senha: leadflow-demo
 ```
 
-Ou envie uma mensagem manual:
+## Simular a Vitória
+
+Pelo navegador:
+
+```text
+http://localhost:8000/vitoria
+```
+
+Pela API:
 
 ```bash
 curl -X POST http://localhost:8000/api/simulate-message \
-  -u evora:troque_esta_senha \
+  -u evora:leadflow-demo \
   -H "Content-Type: application/json" \
-  -d '{"from_phone":"5516999990001","text":"tenho um lead","profile_name":"Carlos"}'
+  -d '{"from_phone":"5516999999999","text":"tenho um lead","profile_name":"Lucas Andrade"}'
 ```
 
-## Credenciais do MVP
+## Deploy na Vercel
 
-O painel usa autenticação básica HTTP.
+A aplicação é FastAPI e expõe a instância `app` em `app/main.py`. O arquivo `pyproject.toml` aponta o entrypoint para `app.main:app` e `vercel.json` já inclui cron opcional.
 
-No `.env` local:
+Para demo rápida, use SQLite efêmero:
 
 ```env
+DATABASE_URL=sqlite:////tmp/leadflow_demo.db
+APP_ENV=demo
+ENABLE_SCHEDULER=false
 DASHBOARD_USERNAME=evora
-DASHBOARD_PASSWORD=troque_esta_senha
+DASHBOARD_PASSWORD=troque_por_senha_forte
 ```
 
-Em produção, troque a senha e, antes de liberar para equipe grande, substitua por autenticação real com usuários, papéis e permissões.
+Depois de importar no Vercel, configure as variáveis de ambiente e faça o deploy.
 
-## GitHub e Vercel
-
-Leia o guia completo:
+## Estrutura
 
 ```text
-docs/DEPLOY_GITHUB_VERCEL.md
+app/
+  main.py
+  routers/
+  services/
+  templates/
+  static/
+docs/
+scripts/
+tests/
 ```
 
-Resumo:
+## Documentação
 
-```bash
-git init
-git add .
-git commit -m "Initial Évora LeadFlow MVP"
-git branch -M main
-gh repo create evora-leadflow --private --source=. --remote=origin --push
-```
+- `docs/DEMO_PREMIUM.md`
+- `docs/GITHUB_VERCEL_DEPLOY.md`
+- `docs/WHATSAPP_SETUP.md`
+- `docs/VITORIA_PLAYBOOK.md`
 
-Depois importe o repositório na Vercel, configure `DATABASE_URL` com um PostgreSQL gerenciado e coloque `ENABLE_SCHEDULER=false`.
+## Próxima fase
 
-## WhatsApp real
-
-Leia `docs/WHATSAPP_SETUP.md`.
-
-Resumo:
-
-- Criar app no Meta for Developers.
-- Configurar WhatsApp Business Platform / Cloud API.
-- Expor o backend em HTTPS.
-- Cadastrar callback URL: `https://seu-dominio.com/webhooks/whatsapp`.
-- Usar o mesmo `WHATSAPP_VERIFY_TOKEN` no `.env` e no painel da Meta.
-- Preencher `WHATSAPP_ACCESS_TOKEN` e `WHATSAPP_PHONE_NUMBER_ID`.
-
-## OpenAI opcional
-
-A Vitória funciona com regras locais. Para melhorar scripts e diagnósticos com modelo de linguagem, configure:
-
-```env
-OPENAI_API_KEY=sua-chave
-OPENAI_MODEL=gpt-5.5
-```
-
-## Próximos incrementos recomendados
-
-1. Autenticação real com login e papéis.
-2. Templates WhatsApp aprovados para mensagens proativas.
-3. Upload de materiais em storage próprio.
-4. Transcrição de áudio.
-5. Integração com CRM legado, RD Station, Meta Ads ou formulários.
-6. BI avançado com conversão por origem, empreendimento e corretor.
-7. Motor de permissões por empreendimento/equipe.
-8. Multiempresa para transformar em SaaS.
+- PostgreSQL permanente.
+- Integração real com WhatsApp Cloud API.
+- Templates proativos da Vitória na Meta.
+- Login por perfil e permissões.
+- Versionamento dos playbooks comerciais.

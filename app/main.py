@@ -5,7 +5,10 @@ import os
 from contextlib import asynccontextmanager
 from zoneinfo import ZoneInfo
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+try:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+except Exception:  # pragma: no cover - demo still runs without the optional local scheduler
+    AsyncIOScheduler = None  # type: ignore
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -18,7 +21,7 @@ from app.services.reminders import send_daily_reminders_sync
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 settings = get_settings()
-scheduler: AsyncIOScheduler | None = None
+scheduler = None
 
 
 @asynccontextmanager
@@ -29,7 +32,7 @@ async def lifespan(app: FastAPI):
         seed_if_empty(db)
 
     running_on_vercel = os.getenv("VERCEL") == "1" or settings.app_env.lower() == "vercel"
-    if settings.enable_scheduler and not running_on_vercel:
+    if settings.enable_scheduler and not running_on_vercel and AsyncIOScheduler is not None:
         scheduler = AsyncIOScheduler(timezone=ZoneInfo(settings.timezone))
         scheduler.add_job(
             send_daily_reminders_sync,
