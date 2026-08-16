@@ -1,7 +1,7 @@
 {
   "name": "vitoria-solaris",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Experiência pública da Vitória para o Solaris Residencial.",
   "scripts": {
     "build": "node build.mjs"
